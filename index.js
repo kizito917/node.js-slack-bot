@@ -1,130 +1,90 @@
-const { App } = require('@slack/bolt');
+const express = require('express');
 require("dotenv").config();
 
-const app = new App({
-  token: process.env.SLACK_BOT_TOKEN,
-  signingSecret: process.env.SLACK_SIGNING_SECRET,
-//   socketMode:true,
-//   appToken: process.env.APP_TOKEN
-});
+const { receiver, slackApp } = require('./helpers/slack-bot.helper');
 
-/* Add functionality here */
-app.command('/register', async ({ command, ack, say, client, body }) => {
-    await ack();
+// Express app
+const app = express();
+const port = process.env.PORT || 3800;
 
+// Integrate the receiver into your existing Express app
+app.use('/slack/events', receiver.router);
+
+// Express route to trigger sending a Slack message
+app.get('/send', async (req, res) => {
     try {
-        // Call views.open with the built-in client
-        const result = await client.views.open({
-            // Pass a valid trigger_id within 3 seconds of receiving it
-            trigger_id: body.trigger_id,
-            // View payload
-            view: {
-                type: 'modal',
-                // View identifier
-                callback_id: 'view_1',
-                title: {
-                    type: 'plain_text',
-                    text: 'Modal title'
+        await slackApp.client.chat.postMessage({
+            channel: '#automation',
+            text: 'The SPA webgen function failed to generate website for Lubego Tech. This is caused by the functions inability to process retrieveal of information from the database.',
+            blocks: [
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "plain_text",
+                            "text": ":round_pushpin: Incident: Identified",
+                            "emoji": true
+                        }
+                    ]
                 },
-                blocks: [
-                    {
-                        type: 'section',
-                        text: {
-                        type: 'mrkdwn',
-                        text: 'Welcome to a modal with _blocks_'
-                        },
-                        accessory: {
-                        type: 'button',
-                        text: {
-                            type: 'plain_text',
-                            text: 'Click me!'
-                        },
-                        action_id: 'button_abc'
-                        }
-                    },
-                    {
-                        type: 'input',
-                        block_id: 'input_c',
-                        label: {
-                        type: 'plain_text',
-                        text: 'What are your hopes and dreams?'
-                        },
-                        element: {
-                        type: 'plain_text_input',
-                        action_id: 'dreamy_input',
-                        multiline: true
-                        }
-                    },
-                    {
-                        "type": "actions",
-                        "block_id": "actions1",
-                        "elements": [
-                            {
-                            "type": "static_select",
-                            "placeholder":{
-                                "type": "plain_text",
-                                "text": "Which witch is the witchiest witch?"
-                            },
-                            "action_id": "select_2",
-                            "options": [
-                                {
-                                "text": {
-                                    "type": "plain_text",
-                                    "text": "Matilda"
-                                },
-                                "value": "matilda"
-                                },
-                                {
-                                "text": {
-                                    "type": "plain_text",
-                                    "text": "Glinda"
-                                },
-                                "value": "glinda"
-                                },
-                                {
-                                "text": {
-                                    "type": "plain_text",
-                                    "text": "Granny Weatherwax"
-                                },
-                                "value": "grannyWeatherwax"
-                                },
-                                {
-                                "text": {
-                                    "type": "plain_text",
-                                    "text": "Hermione"
-                                },
-                                "value": "hermione"
-                                }
-                            ]
-                            },
-                            {
-                            "type": "button",
-                            "text": {
-                                "type": "plain_text",
-                                "text": "Cancel"
-                            },
-                            "value": "cancel",
-                            "action_id": "button_1"
-                            }
-                        ]
+                {
+                    "type": "divider"
+                },
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "SPA webgen function failure",
+                        "emoji": true
                     }
-                ],
-                submit: {
-                    type: 'plain_text',
-                    text: 'Submit'
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "plain_text",
+                        "text": "The SPA webgen function failed to generate website for Lubego Tech. This is caused by the functions inability to process retrieveal of information from the database.",
+                        "emoji": true
+                    }
+                },
+                {
+                    "type": "section",
+                    "fields": [
+                        {
+                            "type": "mrkdwn",
+                            "text": "*Time of Failure:*"
+                        },
+                        {
+                            "type": "mrkdwn",
+                            "text": "*23/09/2024 18:08*"
+                        }
+                    ]
+                },
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": "*Impact*: During this time, websites generation might not be successful when attempting to generate website for different domains."
+                    }
+                },
+                {
+                    "type": "context",
+                    "elements": [
+                        {
+                            "type": "mrkdwn",
+                            "text": "<https://savannahwebgen.tech/|Powered by savannah webgen>."
+                        }
+                    ]
                 }
-            }
+            ]
         });
-        console.log(result)
+        res.send('Status sent to Slack!');
+    } catch (error) {
+        console.error('Error sending message:', error);
+        res.status(500).send('Failed to send status');
     }
-    catch (error) {
-        console.log(error)
-    }
+  });
+  
+// Start the Express app
+app.listen(port, () => {
+    console.log(`⚡️ Slack Bolt app is running on port ${port}!`);
 });
-
-
-(async () => {
-  const port = 3000
-  await app.start(process.env.PORT || port);
-  console.log(`⚡️ Slack Bolt app is running on port ${port}!`);
-})();
